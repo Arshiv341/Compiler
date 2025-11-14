@@ -14,7 +14,7 @@
     <!-- Theme -->
     <link rel="stylesheet" href="/codemirror-5.65.20/theme/dracula.css">
 
-    <!-- Addons (HIGHLIGHT FIX REQUIRED) -->
+    <!-- Addons -->
     <script src="/codemirror-5.65.20/addon/edit/closebrackets.js"></script>
     <script src="/codemirror-5.65.20/addon/edit/matchbrackets.js"></script>
     <script src="/codemirror-5.65.20/addon/edit/closetag.js"></script>
@@ -73,13 +73,11 @@
 
     <div class="col d-flex flex-column rounded bg-dark px-4">
 
-        <!-- INPUT BOX -->
         <div id="inputContainer" class="h-50 hidden">
             <label class="text-light mt-4 mb-2">Input</label>
             <textarea id="inputBox" class="form-control h-75"></textarea>
         </div>
 
-        <!-- OUTPUT BOX -->
         <div id="outputContainer" class="h-50 hidden">
             <label class="text-light mt-3 mb-2">Output</label>
             <textarea id="outputBox" class="form-control h-75"></textarea>
@@ -90,6 +88,8 @@
 </div>
 
 <script>
+let BACKEND_URL = "https://back-api-ritik-ds62.onrender.com/run";
+
 // ---------------- CodeMirror Setup ----------------
 let editor = CodeMirror.fromTextArea(document.querySelector("#editor"), {
     theme: "dracula",
@@ -101,7 +101,6 @@ let editor = CodeMirror.fromTextArea(document.querySelector("#editor"), {
     gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
 });
 
-// -------------- Language Modes ----------------
 const modes = {
     "text/x-java": "text/x-java",
     "python": "python",
@@ -114,20 +113,17 @@ document.querySelector("#languageBox").addEventListener("change", function () {
     editor.setOption("mode", modes[this.value]);
 });
 
-// Detect Java input count
 function getJavaInputCount(code) {
     let matches = code.match(/next(Int|Double|Float|Long|Short|Byte|Boolean)?\(/g);
     return matches ? matches.length : 0;
 }
 
 let requiredInputs = 0;
-let userInputs = 0;
 let waitingForInput = false;
 
 let inputContainer = document.getElementById("inputContainer");
 let outputContainer = document.getElementById("outputContainer");
 
-// ---------------- RUN BUTTON CLICK ----------------
 document.querySelector("#runBtn").addEventListener("click", function () {
 
     let runBtn = document.querySelector("#runBtn");
@@ -137,7 +133,6 @@ document.querySelector("#runBtn").addEventListener("click", function () {
     runBtn.disabled = true;
 
     waitingForInput = true;
-    userInputs = 0;
 
     requiredInputs = getJavaInputCount(editor.getValue());
 
@@ -150,16 +145,15 @@ document.querySelector("#runBtn").addEventListener("click", function () {
     document.querySelector("#inputBox").focus();
 });
 
-// ---------------- INPUT LISTENER ----------------
 document.querySelector("#inputBox").addEventListener("keydown", async function (e) {
 
     if (waitingForInput && e.key === "Enter") {
 
         setTimeout(async () => {
 
-            userInputs = document.querySelector("#inputBox").value.trim().split("\n").length;
+            let lines = document.querySelector("#inputBox").value.trim().split("\n").length;
 
-            if (userInputs === requiredInputs) {
+            if (lines === requiredInputs) {
                 waitingForInput = false;
                 await runCode();
             }
@@ -168,7 +162,6 @@ document.querySelector("#inputBox").addEventListener("keydown", async function (
     }
 });
 
-// ---------------- MAIN RUN FUNCTION ----------------
 async function runCode() {
 
     let runBtn = document.querySelector("#runBtn");
@@ -176,7 +169,7 @@ async function runCode() {
     let code = editor.getValue();
     let input = document.querySelector("#inputBox").value;
 
-    let response = await fetch("/run", {
+    let response = await fetch(BACKEND_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
